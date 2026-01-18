@@ -2,40 +2,33 @@ import allure
 from selenium.webdriver.common.by import By
 
 from src.core.base_page import BasePage
-from src.utils.waits import wait_visible, wait_clickable
+from src.utils.waits import wait_visible
 
 
 class AuthPage(BasePage):
-    USERNAME = (By.CSS_SELECTOR, "[data-test='username']")
-    PASSWORD = (By.CSS_SELECTOR, "[data-test='password']")
-    LOGIN_BTN = (By.CSS_SELECTOR, "[data-test='login-button']")
-    ERROR = (By.CSS_SELECTOR, "[data-test='error']")
+    USERNAME_INPUT = (By.ID, "user-name")
+    PASSWORD_INPUT = (By.ID, "password")
+    LOGIN_BUTTON = (By.ID, "login-button")
+    ERROR_MESSAGE = (By.CSS_SELECTOR, "[data-test='error']")
 
     @allure.step("Открыть страницу авторизации")
-    def open_auth(self, base_url: str, timeout: int = 10):
-        self.open(base_url)
-        wait_visible(self.driver, self.USERNAME, timeout=timeout)
-        wait_visible(self.driver, self.PASSWORD, timeout=timeout)
-        wait_visible(self.driver, self.LOGIN_BTN, timeout=timeout)
+    def open_auth(self, url: str, timeout: int = 10):
+        self.driver.get(url)
+        wait_visible(self.driver, self.USERNAME_INPUT, timeout=timeout)
 
-    @allure.step("Авторизоваться пользователем {username}")
+    @allure.step("Авторизоваться пользователем")
     def login(self, username: str, password: str, timeout: int = 10):
-        user = wait_visible(self.driver, self.USERNAME, timeout=timeout)
-        pwd = wait_visible(self.driver, self.PASSWORD, timeout=timeout)
+        self.driver.find_element(*self.USERNAME_INPUT).clear()
+        self.driver.find_element(*self.USERNAME_INPUT).send_keys(username)
 
-        user.clear()
-        pwd.clear()
+        self.driver.find_element(*self.PASSWORD_INPUT).clear()
+        self.driver.find_element(*self.PASSWORD_INPUT).send_keys(password)
 
-        user.send_keys(username)
-        pwd.send_keys(password)
+        self.driver.find_element(*self.LOGIN_BUTTON).click()
 
-        wait_clickable(self.driver, self.LOGIN_BTN, timeout=timeout).click()
-
-    @allure.step("Нажать Login с пустыми полями")
-    def login_empty(self, timeout: int = 10):
-        wait_clickable(self.driver, self.LOGIN_BTN, timeout=timeout).click()
-
-    @allure.step("Проверить ошибку содержит: {text_part}")
-    def assert_error_contains(self, text_part: str, timeout: int = 10):
-        err = wait_visible(self.driver, self.ERROR, timeout=timeout)
-        assert text_part in err.text, f"Ожидали текст '{text_part}', получили '{err.text}'"
+    @allure.step("Проверить сообщение об ошибке")
+    def assert_error(self, expected_text: str, timeout: int = 10):
+        error = wait_visible(self.driver, self.ERROR_MESSAGE, timeout=timeout)
+        assert expected_text in error.text, (
+            f"Ожидали сообщение '{expected_text}', получили '{error.text}'"
+        )
